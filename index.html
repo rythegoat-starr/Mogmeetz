@@ -156,8 +156,47 @@ function filterShop(cat,btn){state.filter=cat;document.querySelectorAll('#shopTa
 function buyItem(id){const p=state.products.find(x=>x.id===id);if(!p)return;if(state.items.includes(id))return showToast('You already own this item.');if(state.coins<p.price)return showToast('Not enough Mog Coins yet.');if(!confirm(`Purchase ${p.name} for ${p.price} Mog Coins?`))return;state.coins-=p.price;state.items.push(id);state.history.unshift({text:'Purchased '+p.name,amount:-p.price,date:new Date().toLocaleString()});saveState();showToast('Purchased '+p.name+'!')}
 function equipItem(id){const p=state.products.find(x=>x.id===id)||DEFAULT_PRODUCTS.find(x=>x.id===id);if(!p||!state.items.includes(id))return;state.equipped[p.category]=id;saveState();showToast(p.name+' equipped.')}
 function renderProfile(){const n=state.name||'Guest Player';document.getElementById('profileName').textContent=n;document.getElementById('profileTitle').textContent=state.equipped.Titles?(state.products.find(p=>p.id===state.equipped.Titles)||{}).name||'TITLE':'NEW PLAYER';document.getElementById('equippedTitle').textContent=state.equipped.Titles?(state.products.find(p=>p.id===state.equipped.Titles)||{}).name:'No title equipped';document.getElementById('equippedBorder').textContent=state.equipped.Profile?(state.products.find(p=>p.id===state.equipped.Profile)||{}).name:'Default border';document.getElementById('ownerEmailLabel').textContent='rypenson@gmail.com · not verified in this preview'}
-function renderHistory(){const el=document.getElementById('rewardHistory');if(!state.history.length){el.textContent='No rewards yet.';return}el.innerHTML=state.history.slice(0,8).map(h=>`<div class="itemrow"><div class="grow"><strong>${esc(h.text)}</strong><div class="muted">${esc(h.date||'')}</div></div><strong class="${h.amount>=0?'goldtext':''}">${h.amount>0?'+':''}${h.amount} ◆</strong></div>`).join('')}
-function localAccount(e){e.preventDefault();const name=document.getElementById('displayName').value.trim();const email=document.getElementById('accountEmail').value.trim();if(!name||!email)return;state.name=name;state.email=email;document.getElementById('demoPassword').value='';document.getElementById('accountMessage').textContent='Preview profile active on this browser only. No account was created and no password was stored.';saveState();showToast('Preview profile updated.')}
+function renderHistory(){const el=document.getElementById('rewardHistory');if(!state.history.length){el.textContent='No rewards yet.';return}el.innerHTML=state.history.slice(0,8).map(h=>`<div class="itemrow"><div class="grow"><strong>${esc(h.text)}</strong><div class="muted">${esc(h.date||'')}</div></div><strong class="${h.amount>=0?'goldtext':''}">${h.amount>0?'+':''}${h.amount} ◆</strong></div>`).join('')
+ async function localAccount(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('displayName').value.trim();
+  const email = document.getElementById('accountEmail').value.trim();
+  const password = document.getElementById('demoPassword').value;
+  const message = document.getElementById('accountMessage');
+  const button = e.submitter;
+
+  if (!name || !email || !password) return;
+
+  message.textContent = 'Connecting to MogMeet...';
+  if (button) button.disabled = true;
+
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username: name }
+      }
+    });
+
+    if (error) throw error;
+
+    if (data.session) {
+      state.name = name;
+      state.email = email;
+      saveState();
+      message.textContent = 'Account created and logged in!';
+    } else {
+      message.textContent =
+        'Sign-up submitted! Check your email if confirmation is required, then log in.';
+    }
+  } catch (error) {
+    message.textContent = 'Account error: ' + error.message;
+  } finally {
+    if (button) button.disabled = false;
+  }
+ }                        
 function logoutLocal(){state.name='Guest Player';state.email='';document.getElementById('accountMessage').textContent='Using guest mode. No real account is logged in.';saveState();showToast('Switched to guest mode.')}
 function ownerCoins(dir){const n=Math.floor(Number(document.getElementById('coinAmount').value));if(!Number.isFinite(n)||n<1)return showToast('Enter a valid amount.');state.coins=Math.max(0,Math.min(10000000,state.coins+dir*n));state.history.unshift({text:(dir>0?'Owner preview added coins':'Owner preview removed coins'),amount:dir*n,date:new Date().toLocaleString()});saveState();showToast('Preview wallet updated.')}
 function addShopItem(e){e.preventDefault();const name=document.getElementById('newItemName').value.trim(),category=document.getElementById('newItemCategory').value,price=Math.floor(Number(document.getElementById('newItemPrice').value));if(!name||price<0||!Number.isFinite(price))return showToast('Check the item details.');state.products.push({id:'custom-'+Date.now(),name,category,price,art:category==='Titles'?'🏷️':category==='Frames'?'🎥':category==='Chat'?'💬':'✨',desc:'Custom item added in owner preview.'});saveState();e.target.reset();showToast('Item added to preview shop.')}
