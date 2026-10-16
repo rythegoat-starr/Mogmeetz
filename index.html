@@ -184,6 +184,13 @@ function saveAnalysis(){const data={feel:document.getElementById('skinFeel').val
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function escAttr(s){return esc(s).replace(/`/g,'')}
 loadState();renderAll();
+const SUPABASE_URL = "https://gcspcljieumwnffdpera.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nIrA6ZHl4rp7gE8Aypx3Zg_SnMteXfs";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 </script>
 </body>
 </html>
